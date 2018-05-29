@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>首页</title>
+    <link rel="stylesheet" href="content/public.css">
+</head>
+
+<body class="bodyBox successBox" id="defult">
+    <section class="container">
+        <div class="header defult_header">
+            <div class="title">OCEC挖矿</div>
+            <div class="icon_mj" id="mj">挖矿秘籍</div>
+            <div class="icon_record" id="xq">详情</div>
+        </div>
+        <div class="content defult_content">
+            <div class="defult_top">
+                <div class="defult_energy">
+                    <div class="circle">
+
+                    </div>
+                    <div class="small"></div>
+                    <div class="logo_img">
+                        <span>
+                            <img src="content/img/logo.png">
+                        </span>
+                        <span id="defult_tips">收集中...</span>
+                    </div>
+                    <div class="defult_numberlist">
+                        <ul>
+                            <li v-for="numlist in numLists">
+                                <span class="number_time">{{numlist.date}}</span>
+                                <span class="number_num">{{numlist.number}}</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+
+            </div>
+            <div class="community_box">
+                <ul class="community_ul1">
+                    <li class="community_li_title">
+                        <span class="li_big font15">时间</span>
+                        <span class="li_center font15">数量</span>
+                    </li>
+                    <li class='community_li_content community_li_pad0'>
+                        <ul class='community_ul2 community_ul_show'>
+                            <li v-cloak v-for="ction in collections">
+                                <span class="li_big font15">{{ction.date | formatDate}}</span>
+                                <span class="li_center font15">{{ction.number}}</span>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+    <div class="modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="buy-form">
+                    <div id="error"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="script/jquery-3.2.1.js"></script>
+    <script src="script/vue.min.js"></script>
+    <script>
+        function UrlSearch() {
+            var name, value;
+            var str = location.href;
+            var num = str.indexOf("?")
+            str = str.substr(num + 1);
+            var arr = str.split("&");
+            for (var i = 0; i < arr.length; i++) {
+                num = arr[i].indexOf("=");
+                if (num > 0) {
+                    name = arr[i].substring(0, num);
+                    value = arr[i].substr(num + 1);
+                    this[name] = value;
+                }
+            }
+        }
+        var Request = new UrlSearch();
+        var merchantNo = Request.merchantNo;
+        var elseArr = [];
+        var formatDate = function (date, fmt) {
+            if (/(y+)/.test(fmt)) {
+                fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length));
+            }
+            let o = {
+                'M+': date.getMonth() + 1,
+                'd+': date.getDate(),
+                'h+': date.getHours(),
+                'm+': date.getMinutes(),
+                's+': date.getSeconds()
+            };
+            for (let k in o) {
+                if (new RegExp(`(${k})`).test(fmt)) {
+                    let str = o[k] + '';
+                    fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? str : padLeftZero(str));
+                }
+            }
+            return fmt;
+        };
+
+        function padLeftZero(str) {
+            return ('00' + str).substr(str.length);
+        };
+        var vm = new Vue({
+            el: "#defult",
+            data: {
+                numLists: [],
+                collections: []
+            },
+            filters: {
+                formatDate(time) {
+                    var data = new Date(time);
+                    return formatDate(data, 'yyyy-MM-dd hh:mm:ss');
+                }
+            }
+        });
+        $("#defult").ready(function () {
+            $.ajax({
+                url: "http://120.55.20.13/ocec/getRefundNumber",
+                type: "post",
+                data: {
+                   
+                },
+                success: function (data) {
+                    if (data.resultCode == "0000") {
+                        vm.collections = data.resultData.list;
+                    }
+                },
+                error: function (data) {
+
+                },
+                headers: {
+                        merchantNo: merchantNo
+                    }
+            })
+        });
+        $(".defult_energy").click(function () {
+            $.ajax({
+                url: "http://120.55.20.13/ocec/getRefund",
+                type: "post",
+                data: {
+                 
+                },
+                success: function (data) {
+                    if (data.resultCode == "0000") {
+                        if (data.resultData.length != 0) {
+                            document.getElementsByClassName("modal")[0].style.display = "block";
+                            document.getElementById("error").innerHTML =
+                                "收取成功";
+                            setTimeout(function () {
+                                document.getElementsByClassName("modal")[0].style.display =
+                                    "none";
+                            }, 2000);
+                            $("#defult_tips").text("点击收取能量");
+                            $.ajax({
+                                url: "http://120.55.20.13/ocec/getRefundNumber",
+                                type: "post",
+                                data: {},
+                                success: function (data) {
+                                    if (data.resultCode == "0000") {
+                                        vm.collections = data.resultData.list;
+                                    }
+                                },
+                                error: function (data) {
+
+                                },
+                                headers: {
+                        merchantNo: merchantNo
+                    }
+                            })
+
+                        } else {
+                            $("#defult_tips").text("收集中...");
+                        }
+                    }
+                },
+                error: function (data) {
+
+                }
+            })
+
+        });
+        $("#mj").click(function () {
+            location.href = "secretMining.html?merchantNo="+merchantNo;
+        });
+        $("#xq").click(function () {
+            location.href = "detall.html?merchantNo="+merchantNo;
+        })
+    </script>
+</body>
+
+</html>
